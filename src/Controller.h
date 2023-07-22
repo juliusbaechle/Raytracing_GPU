@@ -41,7 +41,16 @@ private:
     if (event->type() == QEvent::MouseMove) {
       QMouseEvent* e = static_cast<QMouseEvent*>(event);
       angleY -= (e->pos().x() - (resolution.x / 2)) / (float) resolution.x;
+      if(angleY > M_PI)
+        angleY -= 2 * M_PI;
+      if (angleY < -M_PI)
+        angleY += 2 * M_PI;
+
       angleX -= (e->pos().y() - (resolution.y / 2)) / (float) resolution.y;
+      if(angleX > M_PI / 2)
+        angleX = M_PI / 2;
+      if (angleX < -M_PI / 2)
+        angleX = -M_PI / 2;
       cursor.setPos(resolution.x / 2, resolution.y / 2);
       return true;
     }
