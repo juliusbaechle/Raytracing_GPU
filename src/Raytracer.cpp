@@ -85,12 +85,12 @@ void Raytracer::setResolution(Resolution resolution) {
   if(m_img.buf)
     delete[] m_img.buf;
   m_img.resolution = resolution;
-  m_img.buf = new Color[resolution.w * resolution.h];
+  m_img.buf = new cl_uchar3[resolution.x * resolution.y];
 
   if(m_cl_image)
     clReleaseMemObject(m_cl_image);
   cl_int err;
-  m_cl_image = clCreateBuffer(m_context, CL_MEM_WRITE_ONLY, sizeof(Color) * resolution.w * resolution.h, nullptr, &err);
+  m_cl_image = clCreateBuffer(m_context, CL_MEM_WRITE_ONLY, sizeof(Color) * resolution.x * resolution.y, nullptr, &err);
   if (err != CL_SUCCESS)
     FATAL_ERROR("clCreateImage", err);
 
@@ -123,12 +123,12 @@ const Image& Raytracer::render(const Camera camera) {
   if (err != CL_SUCCESS)
     FATAL_ERROR("clSetKernelArg", err);
 
-  const size_t global_size[] = { m_img.resolution.w, m_img.resolution.h };
+  const size_t global_size[] = { m_img.resolution.x, m_img.resolution.y };
   err = clEnqueueNDRangeKernel(m_commands, m_kernel, 2, NULL, global_size, NULL, 0, NULL, NULL);
   if (err != CL_SUCCESS)
     FATAL_ERROR("clEnqueueNDRangeKernel", err);
 
-  err = clEnqueueReadBuffer(m_commands, m_cl_image, CL_TRUE, 0, sizeof(Color) * m_img.resolution.w * m_img.resolution.h, m_img.buf, 0, NULL, NULL);
+  err = clEnqueueReadBuffer(m_commands, m_cl_image, CL_TRUE, 0, sizeof(Color) * m_img.resolution.x * m_img.resolution.y, m_img.buf, 0, NULL, NULL);
   if (err != CL_SUCCESS)
     FATAL_ERROR("clEnqueueReadBuffer", err);
 

@@ -15,16 +15,16 @@ Point rub {150, 100, 200};
 Point rdb {150, -100, 200};
 
 Triangle triangles[] = {
-  Triangle{ ldf, ruf, luf, { 255, 0, 0 } },
-  Triangle{ ldf, ruf, rdf, { 255, 30, 0 } },
-  Triangle{ ldb, luf, lub, { 0, 255, 0 } },
-  Triangle{ ldb, luf, ldf, { 0, 200, 55 } },
-  Triangle{ rdb, ruf, rub, { 0, 255, 0 } },
-  Triangle{ rdb, ruf, rdf, { 0, 200, 55 } },
-  Triangle{ luf, rub, lub, { 0, 0, 255 } },
-  Triangle{ luf, rub, ruf, { 0, 55, 200 } },
-  Triangle{ ldf, rdb, ldb, { 0, 0, 255 } },
-  Triangle{ ldf, rdb, rdf, { 0, 55, 200 } },
+  Triangle{ ldf, ruf, luf, { 255, 0, 0, 255 } },
+  Triangle{ ldf, ruf, rdf, { 255, 30, 0, 255 } },
+  Triangle{ ldb, luf, lub, { 0, 255, 0, 255 } },
+  Triangle{ ldb, luf, ldf, { 0, 200, 55, 255 } },
+  Triangle{ rdb, ruf, rub, { 0, 255, 0, 255 } },
+  Triangle{ rdb, ruf, rdf, { 0, 200, 55, 255 } },
+  Triangle{ luf, rub, lub, { 0, 0, 255, 255 } },
+  Triangle{ luf, rub, ruf, { 0, 55, 200, 255 } },
+  Triangle{ ldf, rdb, ldb, { 0, 0, 255, 255 } },
+  Triangle{ ldf, rdb, rdf, { 0, 55, 200, 255 } },
 };
 
 Scene scene = {

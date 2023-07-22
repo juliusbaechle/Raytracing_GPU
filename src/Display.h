@@ -17,7 +17,7 @@ public:
   }
 
   void show(const Image& img) {
-    auto qImg = QImage((uchar*) img.buf, img.resolution.w, img.resolution.h, 3 * img.resolution.w, QImage::Format::Format_RGB888);
+    auto qImg = QImage((uchar*) img.buf, img.resolution.x, img.resolution.y, sizeof(cl_uchar4) * img.resolution.x, QImage::Format::Format_RGBA8888);
     label->setPixmap(QPixmap::fromImage(qImg));
   }
 

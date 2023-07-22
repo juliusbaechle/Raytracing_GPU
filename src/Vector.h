@@ -1,12 +1,9 @@
 #pragma once
 
-typedef struct _Vector {
-  float x;
-  float y;
-  float z;
-} Vector;
+#include <CL/cl.h>
 
-typedef Vector Point;
+typedef cl_float3 Vector;
+typedef cl_float3 Point;
 
 typedef struct _Ray {
   Point origin;
