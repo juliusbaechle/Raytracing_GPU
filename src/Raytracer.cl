@@ -1,5 +1,5 @@
 #define sqr(a) ((a)*(a))
-#define EPSILON 0.0001f
+#define EPSILON 0.0001f // used to counteract numeric noise
 
 typedef float3 Vector;
 typedef float3 Point;
@@ -24,7 +24,7 @@ typedef struct _Triangle {
   uchar reflective;
 } Triangle;
 
-float intersectTriangle(Triangle t, Ray* r) {
+float intersectTriangle(Triangle t, const Ray* r) {
   Vector edge1 = t.v1 - t.v0;
   Vector edge2 = t.v2 - t.v0;
 
@@ -60,7 +60,7 @@ typedef struct _Sphere {
   uchar refractive;
 } Sphere;
 
-float intersectSphere(Sphere s, Ray* r) {
+float intersectSphere(Sphere s, const Ray* r) {
   float3 rayToCenter = s.center - r->origin ;
   float dotProduct = dot(r->direction, rayToCenter);
   float d = sqr(dotProduct) - dot(rayToCenter,rayToCenter) + sqr(s.radius);
@@ -86,6 +86,16 @@ uchar4 dimmColor(uchar4 color, float f) {
   return r;
 }
 
+uchar4 addColor(uchar4 color1, uchar4 color2) {
+  uchar4 r;
+  r.x = color1.x + color2.x;
+  r.y = color1.y + color2.y;
+  r.z = color1.z + color2.z;
+  r.w = 255;
+  return r;
+}
+
+
 typedef struct _Intersection {
   float distance;
   float3 point;
@@ -103,7 +113,7 @@ typedef struct _Scene {
   Sphere light_source;
 } Scene;
 
-Intersection intersect(Scene* scene, Ray* ray) {
+Intersection intersect(const Scene* scene, const Ray* ray) {
   Intersection isct = { INFINITY, {0, 0, 0}, {40, 40, 40, 255}, {0, 0, 0}, false, false };
   for (unsigned int i = 0; i < scene->num_triangles; i++) {
   Triangle t = scene->triangles[i];
@@ -132,7 +142,7 @@ Intersection intersect(Scene* scene, Ray* ray) {
   return isct;
 }
 
-float getLight(Scene* scene, Intersection* isct) {
+float getLight(const Scene* scene, const Intersection* isct) {
   Ray shadow_ray = { isct->point, fast_normalize(scene->light_source.center - isct->point) };
   float distance_to_light = intersectSphere(scene->light_source, &shadow_ray);
   for (unsigned int i = 0; i < scene->num_triangles; i++)
@@ -144,41 +154,66 @@ float getLight(Scene* scene, Intersection* isct) {
   return fabs(dot(isct->normal, shadow_ray.direction));
 }
 
-Ray reflect(Ray* ray, Intersection* isct) {
+Ray reflect(const Ray* ray, const Intersection* isct) {
   return (Ray) { isct->point, ray->direction - 2 * dot(ray->direction, isct->normal) * isct->normal };
 }
 
-Ray refract(Ray* ray, Intersection* isct, float refrIndex) {
-  float _dot = dot(isct->normal, ray->direction);
-  float index = _dot < 0.0f ? 1.0f / refrIndex : refrIndex / 1.0f;
-  float cosT2 = 1.0f - sqr(index) * (1.0f - sqr(_dot));
-  float3 direction = (index * ray->direction) + (index * fabs(_dot) - sqrt( cosT2 )) * isct->normal;
-  return (Ray){ isct->point, fast_normalize(direction) };
+#define MAX_STACK_SIZE 10
 
-  //Ray transmissedRay = (Ray){ isct->point, fast_normalize(direction) };
-  //uchar4 transmissedColor = raytrace(scene, transmissedRay);
-  //if (n1ToN2 > 1.0f)
-  //  return transmissedColor;
-  //
-  //Ray reflectedRay = (Ray){ isct.point, ray->direction - 2 * dot(ray->direction, isct.normal) * isct.normal };
-  //uchar4 reflectedColor = raytrace(scene, reflectedRay);
-  //float fresnelCoeff = sqr(sin(a1 - a2) / sin(a1 + a2));
-  //return dimmColor(reflectedColor, fresnelCoeff) + dimmColor(transmissedColor, (1 - fresnelCoeff));
+typedef struct _RayStack {
+  Ray rays[MAX_STACK_SIZE];
+  float weights[MAX_STACK_SIZE];
+  uchar4 colors[MAX_STACK_SIZE];
+  uint pointer;
+  uint size;
+} RayStack;
+
+void refract(RayStack* stack, const Intersection* isct, float refrIndex) {
+  const Ray* ray = &stack->rays[stack->pointer];
+  float cosI = fabs(dot(isct->normal, ray->direction));
+  float index = dot(isct->normal, ray->direction) < 0.0f ? 1.0f / refrIndex : refrIndex / 1.0f;
+  float cosT = sqrt(1.0f - sqr(index) * (1.0f - sqr(cosI)));
+  float3 direction = (index * ray->direction) + (index * cosI - cosT) * isct->normal;
+  Ray transmissedRay = (Ray){ isct->point, fast_normalize(direction) };
+
+  if (index > 1.0f) {
+    stack->rays[stack->pointer] = transmissedRay;
+    stack->weights[stack->pointer] = 1.0f;
+  } else {
+  float coeff = sqr((index * cosI - cosT) / (index * cosI + cosT));
+  stack->rays[stack->pointer] = transmissedRay;
+    stack->weights[stack->pointer] = (1.0f - coeff);
+    stack->rays[stack->size] = reflect(ray, isct);
+    stack->weights[stack->size] = coeff;
+  stack->size++;
+  }
 }
 
-#define MAX_RAYS 10
+uchar4 raytrace(const Scene* scene, const Ray* ray) {
+  RayStack stack;
+  stack.size = 1;
+  stack.pointer = 0;
+  stack.rays[stack.pointer] = *ray;
+  stack.weights[stack.pointer] = 1.0f;
+  uint counter = 0;
 
-uchar4 raytrace(Scene* scene, Ray* ray) {
-  for (int i = 0; i < MAX_RAYS; i++) {
-    Intersection isct = intersect(scene, ray);
-    if (isct.reflective)
-    *ray = reflect(ray, &isct);
-  else if (isct.refractive)
-    *ray = refract(ray, &isct, 1.52f);
-    else
-    return dimmColor(isct.color, getLight(scene, &isct));
+  while (stack.pointer < stack.size && stack.pointer < MAX_STACK_SIZE - 1 && counter < 20) {
+    Intersection isct = intersect(scene, &stack.rays[stack.pointer]);
+    if (isct.reflective) {
+    stack.rays[stack.pointer] = reflect(&stack.rays[stack.pointer], &isct);
+  } else if (isct.refractive) {
+    refract(&stack, &isct, 1.52f);
+    } else {
+    stack.colors[stack.pointer] = dimmColor(isct.color, getLight(scene, &isct));
+    stack.pointer++;
   }
-  return (uchar4) { 100, 0, 0, 255 };
+  counter++;
+  }
+
+  uchar4 color = {0, 0, 0, 255};
+  for (int i = 0; i < stack.size; i++)
+    color = addColor(color, dimmColor(stack.colors[i], stack.weights[i]));
+  return color;
 }
 
 __kernel void render(__global uchar4* img, Viewport viewport,
