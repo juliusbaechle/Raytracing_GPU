@@ -21,6 +21,7 @@ struct Scene {
   Triangle* triangles;
   uint32_t num_spheres;
   Sphere* spheres;
+  Sphere light_source;
 };
 
 float getIntersection(Triangle t, Ray r);

@@ -131,6 +131,10 @@ void Raytracer::setScene(const Scene scene) {
   err = clSetKernelArg(m_kernel, 5, sizeof(unsigned int), &scene.num_spheres);
   if (err != CL_SUCCESS)
     FATAL_ERROR("clSetKernelArg", err);
+
+  err = clSetKernelArg(m_kernel, 6, sizeof(Sphere), &scene.light_source);
+  if (err != CL_SUCCESS)
+    FATAL_ERROR("clSetKernelArg", err);
 }
 
 const Image& Raytracer::render(const Camera camera) {

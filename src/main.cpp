@@ -29,14 +29,17 @@ Triangle triangles[] = {
 };
 
 Sphere spheres[] = {
-  Sphere{ {0, 0, 4}, 0.5, { 200, 200, 200, 255 } }
+  Sphere{ {0, 0, -4}, 0.5, { 200, 200, 200, 255 } }
 };
+
+Sphere light_source { {0, 1.9, 0}, 1, {255, 255, 255, 255} };
 
 Scene scene = {
   10,
   triangles,
   1,
-  spheres
+  spheres,
+  light_source
 };
 
 int main(int argc, char** argv) {
