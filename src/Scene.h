@@ -16,6 +16,7 @@ struct Sphere {
   float radius;
   Color color;
   bool reflective;
+  bool refractive;
 };
 
 struct Scene {

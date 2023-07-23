@@ -29,11 +29,11 @@ Triangle triangles[] = {
 };
 
 Sphere spheres[] = {
-  Sphere{ {0, 0, -0.55}, 0.5, { 200, 200, 200, 255 }, true },
-  Sphere{ {0, 0,  0.55}, 0.5, { 200, 200, 200, 255 }, true }
+  Sphere{ {0, 0, -4}, 0.5, { 200, 200, 200, 255 }, true, false },
+  Sphere{ {0, 0,  4}, 0.5, { 200, 200, 200, 255 }, false, true }
 };
 
-Sphere light_source { {0, 1.9, 0}, 1, {255, 255, 255, 255}, false };
+Sphere light_source { {0, 1.9, 0}, 1, {255, 255, 255, 255}, false, false };
 
 Scene scene = {
   10,
