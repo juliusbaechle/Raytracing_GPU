@@ -1,5 +1,5 @@
 #define sqr(a) ((a)*(a))
-#define EPSILON 0.001f
+#define EPSILON 0.0001f
 
 typedef float3 Vector;
 typedef float3 Point;
@@ -8,17 +8,6 @@ typedef struct _Ray {
   Point origin;
   Vector direction;
 } Ray;
-
-float angleTo(Vector v1, Vector v2) {
-  float dotProduct = dot(v1, v2);
-  dotProduct /= fast_length(v1);
-  dotProduct /= fast_length(v2);
-  if (dotProduct < -1.0f)
-    dotProduct = -1.0f;
-  if (dotProduct > 1.0f)
-    dotProduct = 1.0f;
-  return acos(dotProduct);
-}
 
 typedef struct _Viewport {
   Point upperLeft;
@@ -160,26 +149,19 @@ Ray reflect(Ray* ray, Intersection* isct) {
 }
 
 Ray refract(Ray* ray, Intersection* isct, float refrIndex) {
-  float a1, n1ToN2;
-  if (dot(ray->direction, isct->normal) < 0.0f) {
-    a1 = angleTo(ray->direction, -1.0f * isct->normal);
-    n1ToN2 = 1.0f / refrIndex;
-  } else {
-    a1 = angleTo(ray->direction, isct->normal);
-    n1ToN2 = refrIndex / 1.0f;
-  }
-
-  float a2 = asin(min(n1ToN2 * sin(a1), 1.0f));
-  float3 direction = n1ToN2 * ray->direction - (cos(a2) - n1ToN2 * cos(a1)) * isct->normal;
+  float _dot = dot(isct->normal, ray->direction);
+  float index = _dot < 0.0f ? 1.0f / refrIndex : refrIndex / 1.0f;
+  float cosT2 = 1.0f - sqr(index) * (1.0f - sqr(_dot));
+  float3 direction = (index * ray->direction) + (index * fabs(_dot) - sqrt( cosT2 )) * isct->normal;
   return (Ray){ isct->point, fast_normalize(direction) };
 
-  //Ray transmissedRay = (Ray){ isct.point, fast_normalize(direction) };
-  //uchar4 transmissedColor = raytrace(scene, transmissedRay, traceDepth++);
+  //Ray transmissedRay = (Ray){ isct->point, fast_normalize(direction) };
+  //uchar4 transmissedColor = raytrace(scene, transmissedRay);
   //if (n1ToN2 > 1.0f)
   //  return transmissedColor;
   //
   //Ray reflectedRay = (Ray){ isct.point, ray->direction - 2 * dot(ray->direction, isct.normal) * isct.normal };
-  //uchar4 reflectedColor = raytrace(scene, reflectedRay, traceDepth++);
+  //uchar4 reflectedColor = raytrace(scene, reflectedRay);
   //float fresnelCoeff = sqr(sin(a1 - a2) / sin(a1 + a2));
   //return dimmColor(reflectedColor, fresnelCoeff) + dimmColor(transmissedColor, (1 - fresnelCoeff));
 }
@@ -196,7 +178,7 @@ uchar4 raytrace(Scene* scene, Ray* ray) {
     else
     return dimmColor(isct.color, getLight(scene, &isct));
   }
-  return (uchar4) { 40, 0, 0, 255 };
+  return (uchar4) { 100, 0, 0, 255 };
 }
 
 __kernel void render(__global uchar4* img, Viewport viewport,
