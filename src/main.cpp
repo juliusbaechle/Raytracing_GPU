@@ -28,9 +28,15 @@ Triangle triangles[] = {
   Triangle{ ldf, rdb, rdf, { 0, 55, 200, 255 } },
 };
 
+Sphere spheres[] = {
+  Sphere{ {0, 0, 4}, 0.5, { 200, 200, 200, 255 } }
+};
+
 Scene scene = {
   10,
-  triangles
+  triangles,
+  1,
+  spheres
 };
 
 int main(int argc, char** argv) {
@@ -42,7 +48,7 @@ int main(int argc, char** argv) {
   app.installEventFilter(&controller);
 
   QThread thread;
-  std::atomic<int> counter;
+  std::atomic<int> counter = 0;
   QObject::connect(&thread, &QThread::started, [&](){
     raytracer.setResolution(display.getResolution());
     raytracer.setScene(scene);

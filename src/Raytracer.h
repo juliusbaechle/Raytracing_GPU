@@ -26,5 +26,6 @@ private:
   cl_context m_context;
   cl_mem m_cl_image = nullptr;
   cl_mem m_cl_triangles = nullptr;
+  cl_mem m_cl_spheres = nullptr;
   Image m_img { nullptr, {0, 0} };
 };

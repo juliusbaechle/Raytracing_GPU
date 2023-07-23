@@ -102,17 +102,33 @@ void Raytracer::setResolution(Resolution resolution) {
 void Raytracer::setScene(const Scene scene) {
   if(m_cl_triangles)
     clReleaseMemObject(m_cl_triangles);
+  m_cl_triangles = clCreateBuffer(m_context, CL_MEM_READ_ONLY, sizeof(Triangle) * scene.num_triangles, NULL, NULL);
 
-  auto cl_triangles = clCreateBuffer(m_context, CL_MEM_READ_ONLY, sizeof(Triangle) * scene.size, NULL, NULL);
-  auto err = clEnqueueWriteBuffer(m_commands, cl_triangles, CL_TRUE, 0, sizeof(Triangle) * scene.size, scene.triangles, 0, NULL, NULL);
+  auto err = clEnqueueWriteBuffer(m_commands, m_cl_triangles, CL_TRUE, 0, sizeof(Triangle) * scene.num_triangles, scene.triangles, 0, NULL, NULL);
   if (err != CL_SUCCESS)
     FATAL_ERROR("clEnqueueWriteBuffer", err);
 
-  err = clSetKernelArg(m_kernel, 2, sizeof(cl_mem), &cl_triangles);
+  err = clSetKernelArg(m_kernel, 2, sizeof(cl_mem), &m_cl_triangles);
   if (err != CL_SUCCESS)
     FATAL_ERROR("clSetKernelArg", err);
 
-  err = clSetKernelArg(m_kernel, 3, sizeof(unsigned int), &scene.size);
+  err = clSetKernelArg(m_kernel, 3, sizeof(unsigned int), &scene.num_triangles);
+  if (err != CL_SUCCESS)
+    FATAL_ERROR("clSetKernelArg", err);
+
+  if(m_cl_spheres)
+    clReleaseMemObject(m_cl_spheres);
+  m_cl_spheres = clCreateBuffer(m_context, CL_MEM_READ_ONLY, sizeof(Sphere) * scene.num_spheres, NULL, NULL);
+
+  err = clEnqueueWriteBuffer(m_commands, m_cl_spheres, CL_TRUE, 0, sizeof(Sphere) * scene.num_spheres, scene.spheres, 0, NULL, NULL);
+  if (err != CL_SUCCESS)
+    FATAL_ERROR("clEnqueueWriteBuffer", err);
+
+  err = clSetKernelArg(m_kernel, 4, sizeof(cl_mem), &m_cl_spheres);
+  if (err != CL_SUCCESS)
+    FATAL_ERROR("clSetKernelArg", err);
+
+  err = clSetKernelArg(m_kernel, 5, sizeof(unsigned int), &scene.num_spheres);
   if (err != CL_SUCCESS)
     FATAL_ERROR("clSetKernelArg", err);
 }
