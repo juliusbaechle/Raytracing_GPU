@@ -16,28 +16,29 @@ Point rub { 4,  2,  8};
 Point rdb { 4, -2,  8};
 
 Triangle triangles[] = {
-  Triangle{ ldf, ruf, luf, { 255, 0, 0, 255 } },
-  Triangle{ ldf, ruf, rdf, { 255, 30, 0, 255 } },
-  Triangle{ ldb, luf, lub, { 0, 255, 0, 255 } },
-  Triangle{ ldb, luf, ldf, { 0, 200, 55, 255 } },
-  Triangle{ rdb, ruf, rub, { 0, 255, 0, 255 } },
-  Triangle{ rdb, ruf, rdf, { 0, 200, 55, 255 } },
-  Triangle{ luf, rub, lub, { 0, 0, 255, 255 } },
-  Triangle{ luf, rub, ruf, { 0, 55, 200, 255 } },
-  Triangle{ ldf, rdb, ldb, { 0, 0, 255, 255 } },
-  Triangle{ ldf, rdb, rdf, { 0, 55, 200, 255 } },
+  Triangle{ ldf, ruf, luf, { 255, 0, 0, 255 }, false },
+  Triangle{ ldf, ruf, rdf, { 255, 30, 0, 255 }, false },
+  Triangle{ ldb, luf, lub, { 0, 255, 0, 255 }, false },
+  Triangle{ ldb, luf, ldf, { 0, 200, 55, 255 }, false },
+  Triangle{ rdb, ruf, rub, { 0, 255, 0, 255 }, false },
+  Triangle{ rdb, ruf, rdf, { 0, 200, 55, 255 }, false },
+  Triangle{ luf, rub, lub, { 0, 0, 255, 255 }, false },
+  Triangle{ luf, rub, ruf, { 0, 55, 200, 255 }, false },
+  Triangle{ ldf, rdb, ldb, { 0, 0, 255, 255 }, false },
+  Triangle{ ldf, rdb, rdf, { 0, 55, 200, 255 }, false },
 };
 
 Sphere spheres[] = {
-  Sphere{ {0, 0, -4}, 0.5, { 200, 200, 200, 255 } }
+  Sphere{ {0, 0, -0.55}, 0.5, { 200, 200, 200, 255 }, true },
+  Sphere{ {0, 0,  0.55}, 0.5, { 200, 200, 200, 255 }, true }
 };
 
-Sphere light_source { {0, 1.9, 0}, 1, {255, 255, 255, 255} };
+Sphere light_source { {0, 1.9, 0}, 1, {255, 255, 255, 255}, false };
 
 Scene scene = {
   10,
   triangles,
-  1,
+  2,
   spheres,
   light_source
 };

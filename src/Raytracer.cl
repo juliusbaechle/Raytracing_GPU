@@ -37,13 +37,8 @@ typedef struct _Triangle {
   Point v1;
   Point v2;
   uchar4 color;
+  uchar reflective;
 } Triangle;
-
-typedef struct _Sphere {
-  Point center;
-  float radius;
-  uchar4 color;
-} Sphere;
 
 float getTriangleIntersection(Triangle t, Ray r) {
   Vector edge1 = t.v1 - t.v0;
@@ -73,9 +68,12 @@ float getTriangleIntersection(Triangle t, Ray r) {
   return d;
 }
 
-float3 getTriangleNormal(Triangle t) {
-  return fast_normalize(cross(t.v1 - t.v0, t.v2 - t.v0));
-}
+typedef struct _Sphere {
+  Point center;
+  float radius;
+  uchar4 color;
+  uchar reflective;
+} Sphere;
 
 float getSphereIntersection(Sphere s, Ray r) {
   float a = sqr(r.direction.x) + sqr(r.direction.y) + sqr(r.direction.z);
@@ -98,10 +96,6 @@ float getSphereIntersection(Sphere s, Ray r) {
   return INFINITY;
 }
 
-float3 getSphereNormal(float3 point, Sphere s) {
-  return fast_normalize(point - s.center);
-}
-
 uchar4 dimmColor(float f, uchar4 color) {
   uchar4 r;
   r.x = f * color.x;
@@ -109,6 +103,53 @@ uchar4 dimmColor(float f, uchar4 color) {
   r.z = f * color.z;
   r.w = color.w;
   return r;
+}
+
+typedef struct _Intersection {
+  float distance;
+  float3 point;
+  uchar4 color;
+  float3 normal;
+  bool reflective;
+} Intersection;
+
+typedef struct _Scene {
+  unsigned char num_triangles;
+  __constant Triangle* triangles;
+  unsigned char num_spheres;
+  __constant Sphere* spheres;
+  Sphere light_source;
+} Scene;
+
+Intersection nextIntersection(Scene scene, Ray ray) {
+  Intersection isct = { INFINITY, {0, 0, 0}, {40, 40, 40, 255}, {0, 0, 0}, false };
+  for (unsigned int i = 0; i < scene.num_triangles; i++) {
+  Triangle t = scene.triangles[i];
+    float distance = getTriangleIntersection(t, ray);
+    if (distance < isct.distance) {
+      isct.distance = distance;
+    isct.point = ray.origin + (distance - 0.0001f) * ray.direction;
+      isct.normal = fast_normalize(cross(t.v1 - t.v0, t.v2 - t.v0));
+      if(t.reflective)
+        isct.reflective = true;
+      else
+        isct.color = t.color;
+    }
+  }
+  for (unsigned int i = 0; i < scene.num_spheres; i++) {
+    Sphere s = scene.spheres[i];
+    float distance = getSphereIntersection(s, ray);
+    if (distance < isct.distance) {
+      isct.distance = distance;
+    isct.point = ray.origin + (distance - 0.0001f) * ray.direction;
+      isct.normal = fast_normalize(isct.point - s.center);
+      if(s.reflective)
+        isct.reflective = true;
+      else
+        isct.color = s.color;
+    }
+  }
+  return isct;
 }
 
 __kernel void render(__global uchar4* img, Viewport viewport,
@@ -121,41 +162,29 @@ __kernel void render(__global uchar4* img, Viewport viewport,
 
   Point viewport_point = viewport.upperLeft + x * viewport.vectorX + y * viewport.vectorY;
   Ray ray = { viewport.eyepoint, fast_normalize(viewport_point - viewport.eyepoint) };
+  Scene scene = { num_triangles, triangles, num_spheres, spheres, light_source };
 
-  float min_distance = INFINITY;
-  uchar4 color = {40, 40, 40, 255};
-  float3 normal = {0.0f, 0.0f, 0.0f};
+  Intersection intersection;
+  int counter = 0;
+  do {
+    intersection = nextIntersection(scene, ray);
+    if (intersection.reflective)
+      ray = (Ray) { intersection.point, ray.direction - 2 * dot(ray.direction, intersection.normal) * intersection.normal };
+  counter++;
+  } while(intersection.reflective && counter < 10);
 
-  for (unsigned int i = 0; i < num_triangles; i++) {
-    float distance = getTriangleIntersection(triangles[i], ray);
-    if (distance < min_distance) {
-      min_distance = distance;
-      color = triangles[i].color;
-    normal = getTriangleNormal(triangles[i]);
-    }
-  }
-  for (unsigned int i = 0; i < num_spheres; i++) {
-    float distance = getSphereIntersection(spheres[i], ray);
-    if (distance < min_distance) {
-      min_distance = distance;
-      color = spheres[i].color;
-    normal = getSphereNormal(ray.origin + distance * ray.direction, spheres[i]);
-    }
-  }
-
-  float3 intersection = ray.origin + ray.direction * (min_distance - 0.0001f);
-  Ray shadow_ray = { intersection, fast_normalize(light_source.center - intersection) };
+  Ray shadow_ray = { intersection.point, fast_normalize(light_source.center - intersection.point) };
   float min_distance2 = INFINITY;
   for (unsigned int i = 0; i < num_triangles; i++)
-  min_distance2 = min(getTriangleIntersection(triangles[i], shadow_ray), min_distance2);
+    min_distance2 = min(getTriangleIntersection(triangles[i], shadow_ray), min_distance2);
   for (unsigned int i = 0; i < num_spheres; i++)
-  min_distance2 = min(getSphereIntersection(spheres[i], shadow_ray), min_distance2);
+    min_distance2 = min(getSphereIntersection(spheres[i], shadow_ray), min_distance2);
+  uchar shadowed = getSphereIntersection(light_source, shadow_ray) > min_distance2;
 
-  if(getSphereIntersection(light_source, shadow_ray) > min_distance2) {
-  color = (uchar4){ 0, 0, 0, 255 };
+  if(shadowed) {
+    intersection.color = (uchar4){ 0, 0, 0, 255 };
   } else {
-  color = dimmColor(fabs(dot(normal, shadow_ray.direction)), color);
+    intersection.color = dimmColor(fabs(dot(intersection.normal, shadow_ray.direction)), intersection.color);
   }
-
-  img[y * get_global_size(0) + x] = color;
+  img[y * get_global_size(0) + x] = intersection.color;
 }

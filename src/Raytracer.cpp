@@ -5,10 +5,6 @@
 
 #define FATAL_ERROR(msg, err) { std::cout << msg << " " << err << std::endl; std::exit(-1); }
 
-QList<QString> files = {
-  "Raytracer.cl"
-};
-
 Raytracer::Raytracer() {
   cl_uint num_platforms;
   auto err = clGetPlatformIDs(0, NULL, &num_platforms);
@@ -45,6 +41,7 @@ Raytracer::Raytracer() {
   if (!m_commands || err != CL_SUCCESS)
     FATAL_ERROR("clCreateCommandQueue", err);
 
+  QList<QString> files = { "Raytracer.cl" };
   const char** strings = load(files);
   cl_program program = clCreateProgramWithSource(m_context, files.size(), strings, NULL, &err);
   if (program == NULL || err != CL_SUCCESS)
@@ -66,19 +63,16 @@ Raytracer::Raytracer() {
 }
 
 const char** Raytracer::load(QList<QString> files) {
-  const char** arr = new const char* [files.size()];
-  for (int i = 0; i < files.size(); i++)
-    arr[i] = load(files[i]);
-  return arr;
-}
-
-const char* Raytracer::load(QString filename) {
-  QFile file(filename);
-  assert(file.open(QIODevice::ReadOnly));
-  QString str = QTextStream(&file).readAll();
-  char* buf = new char[str.length()];
-  strcpy(buf, str.toStdString().c_str());
-  return buf;
+  char** arr = new char* [files.size()];
+  for (int i = 0; i < files.size(); i++) {
+    QFile file(files[i]);
+    assert(file.open(QIODevice::ReadOnly));
+    QString str = QTextStream(&file).readAll();
+    arr[i] = new char[str.length()];
+    strcpy(arr[i], str.toStdString().c_str());
+    file.close();
+  }
+  return (const char**) arr;
 }
 
 void Raytracer::setResolution(Resolution resolution) {

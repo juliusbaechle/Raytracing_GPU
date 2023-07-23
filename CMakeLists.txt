@@ -11,7 +11,6 @@ set(SOURCES
   src/Raytracer.cpp
   src/Vector.cpp
   src/Camera.cpp
-  src/Scene.cpp
 )
 
 find_package(Qt6 COMPONENTS Gui Widgets REQUIRED)

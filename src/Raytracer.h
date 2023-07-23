@@ -18,7 +18,6 @@ public:
 
 private:
   const char** load(QList<QString> files);
-  const char* load(QString filename);
 
 private:
   cl_command_queue m_commands;

@@ -8,12 +8,14 @@ struct Triangle {
   Point v1;
   Point v2;
   Color color;
+  bool reflective;
 };
 
 struct Sphere {
   Point center;
   float radius;
   Color color;
+  bool reflective;
 };
 
 struct Scene {
@@ -23,6 +25,3 @@ struct Scene {
   Sphere* spheres;
   Sphere light_source;
 };
-
-float getIntersection(Triangle t, Ray r);
-float getIntersection(Sphere s, Ray r);
