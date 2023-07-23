@@ -13,10 +13,8 @@ Vector add(Vector v1, Vector v2) {
   return {v1.x + v2.x, v1.y + v2.y, v1.z + v2.z};
 }
 
-inline float half_rsqrt(float f) { return 1/sqrt(f); }
-
-Vector unitVector(Vector v) {
-  float length = half_rsqrt(v.x * v.x + v.y * v.y + v.z * v.z);
+Vector normalize(Vector v) {
+  float length = sqrt(v.x * v.x + v.y * v.y + v.z * v.z);
   return times(v, 1/length);
 }
 

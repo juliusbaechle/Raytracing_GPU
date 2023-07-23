@@ -14,7 +14,7 @@ typedef struct _Ray {
 Vector times(Vector v, float f);
 Vector sub(Vector minuend, Vector subtrahend);
 Vector add(Vector v1, Vector v2);
-Vector unitVector(Vector v);
+Vector normalize(Vector v);
 Vector cross(Vector v1, Vector v2);
 float dot(Vector v1, Vector v2);
 Vector rotateX(Vector v, float f);

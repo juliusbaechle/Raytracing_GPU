@@ -5,14 +5,15 @@
 #include "Raytracer.h"
 #include "Display.h"
 
-Point luf {-150, 100, -200};
-Point ldf {-150, -100, -200};
-Point ruf {150, 100, -200};
-Point rdf {150, -100, -200};
-Point lub {-150, 100, 200};
-Point ldb {-150, -100, 200};
-Point rub {150, 100, 200};
-Point rdb {150, -100, 200};
+// right, up, back
+Point luf {-4,  2, -8};
+Point ldf {-4, -2, -8};
+Point ruf { 4,  2, -8};
+Point rdf { 4, -2, -8};
+Point lub {-4,  2,  8};
+Point ldb {-4, -2,  8};
+Point rub { 4,  2,  8};
+Point rdb { 4, -2,  8};
 
 Triangle triangles[] = {
   Triangle{ ldf, ruf, luf, { 255, 0, 0, 255 } },

@@ -82,15 +82,15 @@ private:
   void updatePosition() {
     auto vForward = rotateY({0, 0, -1}, angleY);
     if(directions.testFlag(Direction::Forward))
-      position = add(position, vForward);
+      position = add(position, times(vForward, 0.02));
     if(directions.testFlag(Direction::Backward))
-      position = add(position, times(vForward, -1));
+      position = add(position, times(vForward, -0.02));
 
     auto vRight = rotateY({1, 0, 0}, angleY);
     if(directions.testFlag(Direction::Right))
-      position = add(position, vRight);
+      position = add(position, times(vRight, 0.02));
     if(directions.testFlag(Direction::Left))
-      position = add(position, times(vRight, -1));
+      position = add(position, times(vRight, -0.02));
   }
 
 private:
