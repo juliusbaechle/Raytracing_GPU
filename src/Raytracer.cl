@@ -163,7 +163,6 @@ Ray reflect(const Ray* ray, const Intersection* isct) {
 typedef struct _RayStack {
   Ray rays[MAX_STACK_SIZE];
   float weights[MAX_STACK_SIZE];
-  uchar4 colors[MAX_STACK_SIZE];
   uint pointer;
   uint size;
 } RayStack;
@@ -180,12 +179,12 @@ void refract(RayStack* stack, const Intersection* isct, float refrIndex) {
     stack->rays[stack->pointer] = transmissedRay;
     stack->weights[stack->pointer] = 1.0f;
   } else {
-  float coeff = sqr((index * cosI - cosT) / (index * cosI + cosT));
-  stack->rays[stack->pointer] = transmissedRay;
-    stack->weights[stack->pointer] = (1.0f - coeff);
+    float coeff = sqr((index * cosI - cosT) / (index * cosI + cosT));
+    stack->rays[stack->pointer] = transmissedRay;
+    stack->weights[stack->pointer] = (1.0f - coeff) * stack->weights[stack->pointer];
     stack->rays[stack->size] = reflect(ray, isct);
-    stack->weights[stack->size] = coeff;
-  stack->size++;
+    stack->weights[stack->size] = coeff * stack->weights[stack->pointer];
+    stack->size++;
   }
 }
 
@@ -196,6 +195,7 @@ uchar4 raytrace(const Scene* scene, const Ray* ray) {
   stack.rays[stack.pointer] = *ray;
   stack.weights[stack.pointer] = 1.0f;
   uint counter = 0;
+  uchar4 color = {0, 0, 0, 255};
 
   while (stack.pointer < stack.size && stack.pointer < MAX_STACK_SIZE - 1 && counter < 20) {
     Intersection isct = intersect(scene, &stack.rays[stack.pointer]);
@@ -204,15 +204,11 @@ uchar4 raytrace(const Scene* scene, const Ray* ray) {
   } else if (isct.refractive) {
     refract(&stack, &isct, 1.52f);
     } else {
-    stack.colors[stack.pointer] = dimmColor(isct.color, getLight(scene, &isct));
+    color += dimmColor(dimmColor(isct.color, getLight(scene, &isct)), stack.weights[stack.pointer]);
     stack.pointer++;
   }
   counter++;
   }
-
-  uchar4 color = {0, 0, 0, 255};
-  for (int i = 0; i < stack.size; i++)
-    color = addColor(color, dimmColor(stack.colors[i], stack.weights[i]));
   return color;
 }
 
