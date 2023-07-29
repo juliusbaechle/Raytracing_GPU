@@ -159,6 +159,7 @@ Ray reflect(const Ray* ray, const Intersection* isct) {
 }
 
 #define MAX_STACK_SIZE 10
+#define MIN_CONTRIBUTION 0.01f
 
 typedef struct _RayStack {
   Ray rays[MAX_STACK_SIZE];
@@ -174,12 +175,11 @@ void refract(RayStack* stack, const Intersection* isct, float refrIndex) {
   float cosT = sqrt(1.0f - sqr(index) * (1.0f - sqr(cosI)));
   float3 direction = (index * ray->direction) + (index * cosI - cosT) * isct->normal;
   Ray transmissedRay = (Ray){ isct->point, fast_normalize(direction) };
+  float coeff = sqr((index * cosI - cosT) / (index * cosI + cosT));
 
-  if (index > 1.0f) {
+  if (index > 1.0f || coeff * stack->weights[stack->pointer] < MIN_CONTRIBUTION) {
     stack->rays[stack->pointer] = transmissedRay;
-    stack->weights[stack->pointer] = 1.0f;
   } else {
-    float coeff = sqr((index * cosI - cosT) / (index * cosI + cosT));
     stack->rays[stack->pointer] = transmissedRay;
     stack->weights[stack->pointer] = (1.0f - coeff) * stack->weights[stack->pointer];
     stack->rays[stack->size] = reflect(ray, isct);
@@ -200,14 +200,14 @@ uchar4 raytrace(const Scene* scene, const Ray* ray) {
   while (stack.pointer < stack.size && stack.pointer < MAX_STACK_SIZE - 1 && counter < 20) {
     Intersection isct = intersect(scene, &stack.rays[stack.pointer]);
     if (isct.reflective) {
-    stack.rays[stack.pointer] = reflect(&stack.rays[stack.pointer], &isct);
-  } else if (isct.refractive) {
-    refract(&stack, &isct, 1.52f);
+      stack.rays[stack.pointer] = reflect(&stack.rays[stack.pointer], &isct);
+    } else if (isct.refractive) {
+      refract(&stack, &isct, 1.52f);
     } else {
-    color += dimmColor(dimmColor(isct.color, getLight(scene, &isct)), stack.weights[stack.pointer]);
-    stack.pointer++;
-  }
-  counter++;
+      color += dimmColor(dimmColor(isct.color, getLight(scene, &isct)), stack.weights[stack.pointer]);
+      stack.pointer++;
+    }
+    counter++;
   }
   return color;
 }
@@ -220,8 +220,18 @@ __kernel void render(__global uchar4* img, Viewport viewport,
   unsigned short x = get_global_id(0);
   unsigned short y = get_global_id(1);
 
-  Point viewport_point = viewport.upperLeft + x * viewport.vectorX + y * viewport.vectorY;
-  Ray ray = { viewport.eyepoint, fast_normalize(viewport_point - viewport.eyepoint) };
   Scene scene = { num_triangles, triangles, num_spheres, spheres, light_source };
-  img[y * get_global_size(0) + x] = raytrace(&scene, &ray);
+
+  Point points [4];
+  points[0] = viewport.upperLeft + (x - 0.25f) * viewport.vectorX + (y - 0.25f) * viewport.vectorY;
+  points[1] = viewport.upperLeft + (x - 0.25f) * viewport.vectorX + (y + 0.25f) * viewport.vectorY;
+  points[2] = viewport.upperLeft + (x + 0.25f) * viewport.vectorX + (y - 0.25f) * viewport.vectorY;
+  points[3] = viewport.upperLeft + (x + 0.25f) * viewport.vectorX + (y + 0.25f) * viewport.vectorY;
+
+  ushort4 color = {0, 0, 0, 4 * 255};
+  for (int i = 0; i < 4; i++) {
+    Ray ray = { viewport.eyepoint, fast_normalize(points[i] - viewport.eyepoint) };
+    color += convert_ushort4(raytrace(&scene, &ray));
+  }
+  img[y * get_global_size(0) + x] = convert_uchar4(color / (ushort) 4);
 }
